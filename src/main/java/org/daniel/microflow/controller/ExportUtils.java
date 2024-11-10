@@ -209,12 +209,16 @@ public class ExportUtils {
 
                 HashSet<String> alreadyInSwitch = new HashSet<>();
                 boolean isElseIf;
+                boolean onlyOneTransition = false;   // Mark if there is only one transition from states (unnecessary if condition in the code).
                 for (Node n : model.getNodes()) {
                     if (n.getType().equals(NodeType.STATE) && !alreadyInSwitch.contains(n.getName())) {
                         boolean hasCondition = false;
                         sb.append("\t\tcase ").append(n.getName()).append(":").append(sep);
                         isElseIf = false;
-                        for (Edge e: model.getEdges()) {
+
+                        // Fori loop to iterate over all edges in the model and have its index.
+                        for (int i = 0; i < model.getEdges().size(); i++) {
+                            Edge e = model.getEdges().get(i);
 
                             if (e.getN1().equals(n)) {
                                 hasCondition = true;
@@ -222,11 +226,11 @@ public class ExportUtils {
                                 if (e.getName().length() == 0) {
                                     tabs = "\t\t\t";
                                 } else {
+                                    onlyOneTransition = appendCondition(sb, e, n, i, model, isElseIf);
+
+                                    // Only the first condition has to be an if, the rest are else if or else.
                                     if (!isElseIf) {
-                                        sb.append("\t\t\tif (").append(e.getName()).append(") {").append(sep);
                                         isElseIf = true;
-                                    } else {
-                                        sb.append("\t\t\telse if (").append(e.getName()).append(") {").append(sep);
                                     }
                                 }
 
@@ -247,10 +251,15 @@ public class ExportUtils {
                                 }
 
                                 if (e.getN1() != e.getN2()) {
+                                    // If the state has a single condition, remove an extra '\t' from the tabs.
+                                    if (onlyOneTransition) {
+                                        tabs = "\t\t\t";
+                                    }
                                     sb.append(tabs).append("state = ").append(e.getN2().getName()).append(";").append(sep);
                                 }
 
-                                if (e.getName().length() > 0) {
+                                // Write the closing bracket for the if condition only if there is more than one state in the diagram.
+                                if (e.getName().length() > 0 && !onlyOneTransition) {
                                     sb.append("\t\t\t}").append(sep);
                                 }
                             }
@@ -258,7 +267,7 @@ public class ExportUtils {
                         if (!hasCondition) {
                             sb.append(sep);
                         }
-                        sb.append("\t\tbreak;").append(sep);
+                        sb.append("\t\t\tbreak;").append(sep);
                         alreadyInSwitch.add(n.getName());
                     }
                 }
@@ -279,6 +288,34 @@ public class ExportUtils {
         }
 
         return chooser.getSelectedFile();
+    }
+
+    private static boolean appendCondition(StringBuilder sb, Edge e, Node n, int i, Graph model, boolean isElseIf) {
+        boolean onlyOneTransition = false;
+
+        // Check if there is another edge following the current one
+        boolean hasNextEdge = model.getEdges().size() > i + 1;
+        Edge nextEdge = hasNextEdge ? model.getEdges().get(i + 1) : null;
+        boolean hasNextEdgeWithSameN1 = hasNextEdge && nextEdge.getN1().equals(n);
+
+        // Determine whether to append "if", "else if", or "else"
+        if (!isElseIf) {
+            // Start with an "if" statement
+            if (hasNextEdgeWithSameN1) {
+                sb.append("\t\t\tif (").append(e.getName()).append(") {").append(sep);
+            } else {
+                onlyOneTransition = true; // No next edge with the same starting node
+            }
+        } else {
+            // Continue with "else if" or "else" as appropriate
+            if (hasNextEdgeWithSameN1) {
+                sb.append("\t\t\telse if (").append(e.getName()).append(") {").append(sep);
+            } else {
+                sb.append("\t\t\telse {").append(sep);
+            }
+        }
+
+        return onlyOneTransition;
     }
 
     public static File exportDictionary(Graph model, JFileChooser chooser, DiagramView view) {
