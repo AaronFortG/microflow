@@ -20,6 +20,8 @@ import java.awt.print.PrinterException;
 import java.awt.print.PrinterJob;
 import java.io.File;
 import java.io.IOException;
+import java.util.LinkedList;
+import java.util.List;
 
 public class Controller extends MouseAdapter implements ActionListener {
 
@@ -47,6 +49,8 @@ public class Controller extends MouseAdapter implements ActionListener {
     private File lastGenerationFile;
     private File lastSourceFile;
     private static File lastOpenFile;
+
+    private final List<Node> textElements = new LinkedList<>();
 
     public Controller(DiagramView view, Graph graph) {
         this.view = view;
@@ -103,7 +107,7 @@ public class Controller extends MouseAdapter implements ActionListener {
                 chooser = new JFileChooser();
                 chooser.setFileFilter(C_SOURCE);
                 if (lastSourceFile != null) chooser.setSelectedFile(lastSourceFile);
-                lastSourceFile = ExportUtils.exportMotor(model, chooser, view);
+                lastSourceFile = ExportUtils.exportMotor(model, chooser, view, textElements);
                 break;
             case GEN_DICT:
                 chooser = new JFileChooser();
@@ -372,6 +376,10 @@ public class Controller extends MouseAdapter implements ActionListener {
     private void finalDelete() {
         if (clicked instanceof Node) {
             model.deleteNode((Node) clicked);
+
+            // If it's a text node, remove it from the list of text elements
+			textElements.remove(clicked);
+
         } else if (clicked instanceof Edge) {
             model.deleteEdge((Edge) clicked);
         } else if (clicked instanceof Action) {
@@ -522,7 +530,13 @@ public class Controller extends MouseAdapter implements ActionListener {
             if (nt.equals(NodeType.STATE)) {
                 model.addNode(new Node(nt, e.getPoint(), model));
             } else {
-                model.addNode(new Node(nt, state.getNameToAdd(), e.getPoint(), model));
+                Node n = new Node(nt, state.getNameToAdd(), e.getPoint(), model);
+                model.addNode(n);
+
+                // If it's a text node, add it to the list of text elements (for constants written in the diagram)
+                if (nt.equals(NodeType.TEXT)) {
+                    textElements.add(n);
+                }
             }
             Component c = e.getComponent(); //DrawPanel instance
             Rectangle bounds = c.getBounds();

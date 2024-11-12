@@ -4,7 +4,6 @@ import org.daniel.microflow.model.*;
 import org.daniel.microflow.view.DiagramView;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileNameExtensionFilter;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -14,10 +13,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
+import java.util.*;
 
 public class ExportUtils {
 
@@ -32,6 +28,8 @@ public class ExportUtils {
     private static final DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
     private static final String sep = System.lineSeparator();
+
+    private static final String MACRO_DEFINE_PREFIX = "#define ";
 
     public static File exportSourceCode(Graph model, JFileChooser chooser, DiagramView view) {
         if (model.canBeExported(1)) {
@@ -126,7 +124,7 @@ public class ExportUtils {
                         filePath = folder.toString() + "/T" + n.getName() + ".h";
 
                         sb.append("#ifndef _").append(name.toUpperCase()).append("_H_").append(sep);
-                        sb.append("#define _").append(name.toUpperCase()).append("_H_").append(sep).append(sep);
+                        sb.append(MACRO_DEFINE_PREFIX + "_").append(name.toUpperCase()).append("_H_").append(sep).append(sep);
                         sb.append(INCLUD_H);
                         sb.append(sep);
 
@@ -199,6 +197,25 @@ public class ExportUtils {
                 String name = chooser.getSelectedFile().getName();
                 StringBuilder sb = new StringBuilder();
 
+                // Append all the defined constants written in the text elements
+                boolean hasConstant = false;
+                for (Node n : textElements) {
+                    // Check if there is a constant defined in the text element
+                    if (n.getType().equals(NodeType.TEXT)) {
+                        String[] lines = n.getName().split("\n");
+                        for (String line : lines) {
+                            if (line.contains(MACRO_DEFINE_PREFIX)) {
+                                hasConstant = true;
+                                sb.append(line).append(sep);
+                            }
+                        }
+                    }
+                }
+
+                // If there are constants, add a separator
+                if (hasConstant) {
+                    sb.append(sep);
+                }
 
                 sb.append("void ").append(name).append("(void) {").append(sep);
                 sb.append("\tstatic char state = 0;\n").append(sep).append("\tswitch(state) {").append(sep);
@@ -279,15 +296,6 @@ public class ExportUtils {
         return chooser.getSelectedFile();
     }
 
-    private static boolean appendCondition(StringBuilder sb, Edge e, Node n, int i, Graph model, boolean isElseIf) {
-        boolean onlyOneTransition = false;
-
-        // Check if there is another edge following the current one
-        boolean hasNextEdge = model.getEdges().size() > i + 1;
-        Edge nextEdge = hasNextEdge ? model.getEdges().get(i + 1) : null;
-        boolean hasNextEdgeWithSameN1 = hasNextEdge && nextEdge.getN1().equals(n);
-
-        // Determine whether to append "if", "else if", or "else"
     private static boolean appendCondition(StringBuilder sb, Edge e, boolean isElseIf) {
 		// Determine whether to append "if", "else if", or "else"
         if (!isElseIf) {
