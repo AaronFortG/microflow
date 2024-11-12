@@ -192,7 +192,7 @@ public class ExportUtils {
         return chooser.getSelectedFile();
     }
 
-    public static File exportMotor(Graph model, JFileChooser chooser, DiagramView view) {
+    public static File exportMotor(Graph model, JFileChooser chooser, DiagramView view, List<Node> textElements) {
         if (model.canBeExported(0)) {
             if (chooser.showSaveDialog(view) == JFileChooser.APPROVE_OPTION) {
                 String filePath = chooser.getSelectedFile().getAbsolutePath() + ".c";
@@ -209,8 +209,7 @@ public class ExportUtils {
 
                 HashSet<String> alreadyInSwitch = new HashSet<>();
                 boolean isElseIf;
-                boolean onlyOneTransition = false;   // Mark if there is only one transition from states (unnecessary if condition in the code).
-                for (Node n : model.getNodes()) {
+				for (Node n : model.getNodes()) {
                     if (n.getType().equals(NodeType.STATE) && !alreadyInSwitch.contains(n.getName())) {
                         boolean hasCondition = false;
                         sb.append("\t\tcase ").append(n.getName()).append(":").append(sep);
@@ -226,12 +225,7 @@ public class ExportUtils {
                                 if (e.getName().length() == 0) {
                                     tabs = "\t\t\t";
                                 } else {
-                                    onlyOneTransition = appendCondition(sb, e, n, i, model, isElseIf);
-
-                                    // Only the first condition has to be an if, the rest are else if or else.
-                                    if (!isElseIf) {
-                                        isElseIf = true;
-                                    }
+                                    isElseIf = appendCondition(sb, e, isElseIf);
                                 }
 
                                 if (e.getAction() != null) {
@@ -251,15 +245,10 @@ public class ExportUtils {
                                 }
 
                                 if (e.getN1() != e.getN2()) {
-                                    // If the state has a single condition, remove an extra '\t' from the tabs.
-                                    if (onlyOneTransition) {
-                                        tabs = "\t\t\t";
-                                    }
                                     sb.append(tabs).append("state = ").append(e.getN2().getName()).append(";").append(sep);
                                 }
 
-                                // Write the closing bracket for the if condition only if there is more than one state in the diagram.
-                                if (e.getName().length() > 0 && !onlyOneTransition) {
+                                if (e.getName().length() > 0) {
                                     sb.append("\t\t\t}").append(sep);
                                 }
                             }
@@ -299,23 +288,20 @@ public class ExportUtils {
         boolean hasNextEdgeWithSameN1 = hasNextEdge && nextEdge.getN1().equals(n);
 
         // Determine whether to append "if", "else if", or "else"
+    private static boolean appendCondition(StringBuilder sb, Edge e, boolean isElseIf) {
+		// Determine whether to append "if", "else if", or "else"
         if (!isElseIf) {
             // Start with an "if" statement
-            if (hasNextEdgeWithSameN1) {
-                sb.append("\t\t\tif (").append(e.getName()).append(") {").append(sep);
-            } else {
-                onlyOneTransition = true; // No next edge with the same starting node
-            }
+            sb.append("\t\t\tif (").append(e.getName()).append(") {").append(sep);
+
+            // Only the first condition has to be an if, the rest are else if or else.
+            isElseIf = true;
         } else {
-            // Continue with "else if" or "else" as appropriate
-            if (hasNextEdgeWithSameN1) {
-                sb.append("\t\t\telse if (").append(e.getName()).append(") {").append(sep);
-            } else {
-                sb.append("\t\t\telse {").append(sep);
-            }
+            // Continue with "else if" statement
+            sb.append("\t\t\telse if (").append(e.getName()).append(") {").append(sep);
         }
 
-        return onlyOneTransition;
+        return isElseIf;
     }
 
     public static File exportDictionary(Graph model, JFileChooser chooser, DiagramView view) {
