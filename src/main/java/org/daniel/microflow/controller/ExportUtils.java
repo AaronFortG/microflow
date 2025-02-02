@@ -30,8 +30,18 @@ public class ExportUtils {
     private static final String sep = System.lineSeparator();
     public static final String C_FILE_EXTENSION = ".c";
 
+    // Regular expressions and constants for the final source code.
     private static final String MACRO_DEFINE_PREFIX = "#define ";
+    private static final String INCLUDE_DEFINE_PREFIX = "#include ";
+    private static final String INCLUDE_MPLAB_C_COMPILER = INCLUDE_DEFINE_PREFIX + "<xc.h>";
+    private static final String INCLUDE_PIC_MICROCONTROLLER = INCLUDE_DEFINE_PREFIX + "<p18f4321.h>";
     private static final String LEADING_WHITESPACE_REGEX = "^\\s+";
+    private static final String ILLEGAL_CHARACTERS_REGEX = "[<>:\"/\\|?*]";
+
+    public static String sanitizeFilePath(String filePath) {
+        // Replace illegal characters with an empty string
+        return filePath.replaceAll(ILLEGAL_CHARACTERS_REGEX, "");
+    }
 
     public static File exportSourceCode(Graph model, JFileChooser chooser, DiagramView view) {
         if (model.canBeExported(1)) {
@@ -45,10 +55,15 @@ public class ExportUtils {
                     folder = chooser.getSelectedFile().toPath();
                 }
 
+                // Sanitize the file name to remove illegal characters
+                for (Node n : model.getNodes()) {
+                    n.setName(sanitizeFilePath(n.getName()));
+                }
+
                 for (Node n : model.getNodes()) {
                     if (n.getType().equals(NodeType.TAD)) {
                         //.c
-                        String filePath = folder.toString() + "/T" + n.getName() + ".c";
+                        String filePath = folder + "/T" + n.getName() + C_FILE_EXTENSION;
                         String name = "T" + n.getName();
                         StringBuilder sb = new StringBuilder();
                         String header;
@@ -62,7 +77,14 @@ public class ExportUtils {
                         header = sb.toString();
                         sb.setLength(0);
 
-                        sb.append(INCLUD_H).append(sep).append(sep).append("#include \"").append(name).append(".h\"");
+                        sb.append(INCLUD_H).append(sep);
+
+                        // Add MPLAB compiler include
+                        sb.append(sep).append(INCLUDE_MPLAB_C_COMPILER);
+                        sb.append(sep).append(INCLUDE_PIC_MICROCONTROLLER);
+
+                        // Add all the necessary includes for the TAD (dependencies)
+                        sb.append(sep).append("#include \"").append(name).append(".h\"");
                         sb.append(sep).append(sep).append(VAR_CONST_H).append(sep);
 
                         for (Edge e: model.getEdges()) {
