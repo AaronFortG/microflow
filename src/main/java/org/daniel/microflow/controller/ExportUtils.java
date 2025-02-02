@@ -30,6 +30,7 @@ public class ExportUtils {
     private static final String sep = System.lineSeparator();
 
     private static final String MACRO_DEFINE_PREFIX = "#define ";
+    private static final String LEADING_WHITESPACE_REGEX = "^\\s+";
 
     public static File exportSourceCode(Graph model, JFileChooser chooser, DiagramView view) {
         if (model.canBeExported(1)) {
@@ -204,7 +205,9 @@ public class ExportUtils {
                     if (n.getType().equals(NodeType.TEXT)) {
                         String[] lines = n.getName().split("\n");
                         for (String line : lines) {
-                            if (line.contains(MACRO_DEFINE_PREFIX)) {
+                            // Remove all the spaces and tabs from the beginning of the line
+                            line = line.replaceAll(LEADING_WHITESPACE_REGEX, "");
+                            if (line.startsWith(MACRO_DEFINE_PREFIX)) {
                                 hasConstant = true;
                                 sb.append(line).append(sep);
                             }
@@ -228,7 +231,6 @@ public class ExportUtils {
                 boolean isElseIf;
 				for (Node n : model.getNodes()) {
                     if (n.getType().equals(NodeType.STATE) && !alreadyInSwitch.contains(n.getName())) {
-                        boolean hasCondition = false;
                         sb.append("\t\tcase ").append(n.getName()).append(":").append(sep);
                         isElseIf = false;
 
@@ -237,7 +239,6 @@ public class ExportUtils {
                             Edge e = model.getEdges().get(i);
 
                             if (e.getN1().equals(n)) {
-                                hasCondition = true;
                                 String tabs = "\t\t\t\t";
                                 if (e.getName().length() == 0) {
                                     tabs = "\t\t\t";
@@ -269,9 +270,6 @@ public class ExportUtils {
                                     sb.append("\t\t\t}").append(sep);
                                 }
                             }
-                        }
-                        if (!hasCondition) {
-                            sb.append(sep);
                         }
                         sb.append("\t\t\tbreak;").append(sep);
                         alreadyInSwitch.add(n.getName());
