@@ -28,6 +28,7 @@ public class ExportUtils {
     private static final DateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss");
 
     private static final String sep = System.lineSeparator();
+    public static final String FILE_EXTENSION = ".c";
 
     private static final String MACRO_DEFINE_PREFIX = "#define ";
     private static final String LEADING_WHITESPACE_REGEX = "^\\s+";
@@ -194,7 +195,12 @@ public class ExportUtils {
     public static File exportMotor(Graph model, JFileChooser chooser, DiagramView view, List<Node> textElements) {
         if (model.canBeExported(0)) {
             if (chooser.showSaveDialog(view) == JFileChooser.APPROVE_OPTION) {
-                String filePath = chooser.getSelectedFile().getAbsolutePath() + ".c";
+                String filePath = chooser.getSelectedFile().getAbsolutePath();
+
+                if (!filePath.endsWith(FILE_EXTENSION)) {
+                    filePath += FILE_EXTENSION;
+                }
+
                 String name = chooser.getSelectedFile().getName();
                 StringBuilder sb = new StringBuilder();
 
