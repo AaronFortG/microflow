@@ -23,6 +23,8 @@ import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
 
+import static org.daniel.microflow.controller.ExportUtils.C_FILE_EXTENSION;
+
 public class Controller extends MouseAdapter implements ActionListener {
 
     private final DiagramView view;
@@ -41,7 +43,7 @@ public class Controller extends MouseAdapter implements ActionListener {
     public static final FileFilter MCF_FILTER = new FileNameExtensionFilter("Microflow file (.mcf)", "mcf");
     public static final FileFilter PNG_FILTER = new FileNameExtensionFilter("PNG (.png)", "png");
     public static final FileFilter TXT_FILTER = new FileNameExtensionFilter("Text file (.txt)", "txt");
-    public static final FileFilter C_SOURCE = new FileNameExtensionFilter("C source code (.c)", "c");
+    public static final FileFilter C_SOURCE = new FileNameExtensionFilter("C source code (" + C_FILE_EXTENSION + ")", C_FILE_EXTENSION.substring(1));
 
     private File lastMcfFile;
     private File lastPngFile;
